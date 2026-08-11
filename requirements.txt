@@ -1,0 +1,5 @@
+playwright
+google-genai
+requests
+pydantic
+groq
