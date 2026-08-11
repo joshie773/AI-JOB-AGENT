@@ -14,6 +14,11 @@ from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
 
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
+
 class ResumeEvaluation(BaseModel):
     """Pydantic model for structured AI evaluation response."""
     is_match: bool = Field(description="Whether the candidate should apply for this job")
@@ -111,9 +116,51 @@ Base Resume:
             if attempt < max_retries:
                 time.sleep(2)
             else:
-                return _fallback_evaluation(base_resume)
+                print(f"   ⚠️ Gemini failed ({e}). Falling back to Groq...")
+                return _groq_fallback_evaluation(prompt, base_resume)
                 
-    return _fallback_evaluation(base_resume)
+    return _groq_fallback_evaluation(prompt, base_resume)
+
+
+def _groq_fallback_evaluation(prompt: str, base_resume: str) -> ResumeEvaluation:
+    """Fallback to Groq Llama 3 if Gemini fails."""
+    if Groq is None:
+        return _fallback_evaluation(base_resume)
+        
+    groq_key = os.environ.get("GROQ_API_KEY")
+    if not groq_key:
+        return _fallback_evaluation(base_resume)
+        
+    # Append JSON instructions to the prompt since Groq doesn't take Pydantic directly
+    json_instructions = """
+    
+CRITICAL: You must respond in valid JSON matching this exact schema:
+{
+  "is_match": bool,
+  "match_score": int (0-100),
+  "reasoning": string,
+  "tailored_summary": string,
+  "tailored_bullets": [string],
+  "cover_letter": string,
+  "matched_keywords": [string],
+  "missing_keywords": [string]
+}
+"""
+    try:
+        client = Groq(api_key=groq_key)
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "user", "content": prompt + json_instructions},
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+        data = json.loads(response.choices[0].message.content)
+        return ResumeEvaluation(**data)
+    except Exception as e:
+        print(f"   ⚠️ Groq fallback also failed ({e}).")
+        return _fallback_evaluation(base_resume)
 
 
 def _fallback_evaluation(base_resume: str) -> ResumeEvaluation:
