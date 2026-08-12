@@ -65,6 +65,7 @@ Evaluation Guidelines:
 - If the skills match but experience years are slightly short, still recommend applying.
 - If the experience is massive but one minor skill is missing, still recommend applying.
 - SALARY FILTER (CRITICAL): If the JD mentions a salary, REJECT the job (is_match = false) if it is below 1,800,000 INR (18 LPA) for India, or if it is a low-paying/average salary abroad. Only approve high-paying, senior-level compensation.
+- SENIORITY FILTER (CRITICAL): Ensure the job is a good, high-level senior position (e.g., Manager, Lead, Head, Director, Senior Manager, QMS Lead, QA/QC Head, etc.). REJECT any junior or mid-level roles (like entry-level quality control engineer, inspector, assistant, operator) that do not match a candidate with 25+ years of executive leadership.
 - NEVER invent fake experience. Use ONLY facts from the base resume below.
 
 Resume Tailoring Rules (CRITICAL):
