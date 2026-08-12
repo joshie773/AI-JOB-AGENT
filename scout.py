@@ -90,9 +90,14 @@ def fetch_google_jobs(queries: List[str], locations: List[str]) -> List[Dict[str
     google_cse_id = os.environ.get("GOOGLE_CSE_ID")
 
     if serpapi_key:
-        # SerpAPI Google Jobs endpoint
-        for query in queries[:5]:  # Limit API calls
-            for loc in ["India", "United States", "United Kingdom", "Australia"]:
+        # SerpAPI Google Jobs endpoint — fail fast on first timeout
+        serpapi_ok = True
+        for query in queries[:3]:  # Only 3 queries to conserve free quota
+            if not serpapi_ok:
+                break
+            for loc in ["India", "United States", "United Kingdom"]:
+                if not serpapi_ok:
+                    break
                 url = "https://serpapi.com/search.json"
                 params = {
                     "engine": "google_jobs",
@@ -100,23 +105,29 @@ def fetch_google_jobs(queries: List[str], locations: List[str]) -> List[Dict[str
                     "location": loc,
                     "api_key": serpapi_key,
                 }
-                resp = _fetch_with_retry(url, params=params)
-                if resp:
-                    try:
-                        data = resp.json()
-                        for item in data.get("jobs_results", []):
-                            jobs.append({
-                                "id": f"google_{hash(item.get('title','') + item.get('company_name',''))}",
-                                "title": item.get("title", ""),
-                                "company": item.get("company_name", ""),
-                                "url": item.get("share_link", item.get("related_links", [{}])[0].get("link", "") if item.get("related_links") else ""),
-                                "description": item.get("description", ""),
-                                "source": "Google Jobs",
-                                "location": item.get("location", loc),
-                                "salary_info": item.get("detected_extensions", {}).get("salary", ""),
-                            })
-                    except Exception as e:
-                        logger.error(f"Error parsing SerpAPI response: {e}")
+                try:
+                    resp = requests.get(url, params=params, timeout=8)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    for item in data.get("jobs_results", []):
+                        jobs.append({
+                            "id": f"google_{hash(item.get('title','') + item.get('company_name',''))}",
+                            "title": item.get("title", ""),
+                            "company": item.get("company_name", ""),
+                            "url": item.get("share_link", item.get("related_links", [{}])[0].get("link", "") if item.get("related_links") else ""),
+                            "description": item.get("description", ""),
+                            "source": "Google Jobs",
+                            "location": item.get("location", loc),
+                            "salary_info": item.get("detected_extensions", {}).get("salary", ""),
+                        })
+                except requests.Timeout:
+                    logger.warning("SerpAPI timed out. Skipping Google Jobs entirely for this run.")
+                    serpapi_ok = False
+                    break
+                except Exception as e:
+                    logger.warning(f"SerpAPI error: {e}. Skipping.")
+                    serpapi_ok = False
+                    break
         logger.info(f"Google Jobs (SerpAPI) returned {len(jobs)} jobs.")
 
     elif google_cse_key and google_cse_id:
