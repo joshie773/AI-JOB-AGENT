@@ -110,11 +110,17 @@ def fetch_google_jobs(queries: List[str], locations: List[str]) -> List[Dict[str
                     resp.raise_for_status()
                     data = resp.json()
                     for item in data.get("jobs_results", []):
+                            # Extract direct application link if available
+                            apply_links = item.get("apply_options", [])
+                            direct_url = apply_links[0].get("link") if apply_links else ""
+                            if not direct_url:
+                                direct_url = item.get("share_link", "")
+                                
                         jobs.append({
                             "id": f"google_{hash(item.get('title','') + item.get('company_name',''))}",
                             "title": item.get("title", ""),
                             "company": item.get("company_name", ""),
-                            "url": item.get("share_link", item.get("related_links", [{}])[0].get("link", "") if item.get("related_links") else ""),
+                            "url": direct_url,
                             "description": item.get("description", ""),
                             "source": "Google Jobs",
                             "location": item.get("location", loc),
