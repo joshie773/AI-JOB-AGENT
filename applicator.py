@@ -154,12 +154,24 @@ def apply_to_job(
     print(f"\n🚀 Launching browser for: {url}")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, slow_mo=300)
-        context = browser.new_context(
-            viewport={"width": 1280, "height": 900},
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
-        page = context.new_page()
+        # Use a persistent profile so the user stays logged into Google/LinkedIn
+        profile_dir = os.path.join(os.getcwd(), "chrome_profile")
+        
+        try:
+            context = p.chromium.launch_persistent_context(
+                user_data_dir=profile_dir,
+                channel="chrome",  # Use the real Chrome browser installed on the computer
+                headless=False,
+                slow_mo=300,
+                viewport={"width": 1280, "height": 900},
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+        except Exception as e:
+            print(f"\n❌ Error launching Chrome: {e}")
+            print("💡 TIP: Make sure you don't have any instance of this specific Agent Chrome profile already open!")
+            return False
+            
+        page = context.pages[0] if context.pages else context.new_page()
 
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=45000)
