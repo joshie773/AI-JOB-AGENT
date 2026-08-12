@@ -64,6 +64,7 @@ Evaluation Guidelines:
 - Be LENIENT in matching: if the candidate has 80%+ of the required skills OR 80%+ of the required experience years, recommend applying (is_match = true).
 - If the skills match but experience years are slightly short, still recommend applying.
 - If the experience is massive but one minor skill is missing, still recommend applying.
+- SALARY FILTER (CRITICAL): If the JD mentions a salary, REJECT the job (is_match = false) if it is below 1,800,000 INR (18 LPA) for India, or if it is a low-paying/average salary abroad. Only approve high-paying, senior-level compensation.
 - NEVER invent fake experience. Use ONLY facts from the base resume below.
 
 Resume Tailoring Rules (CRITICAL):
