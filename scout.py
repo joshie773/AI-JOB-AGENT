@@ -106,7 +106,7 @@ def fetch_google_jobs(queries: List[str], locations: List[str]) -> List[Dict[str
                     "api_key": serpapi_key,
                 }
                 try:
-                    resp = requests.get(url, params=params, timeout=8)
+                    resp = requests.get(url, params=params, timeout=30)
                     resp.raise_for_status()
                     data = resp.json()
                     for item in data.get("jobs_results", []):
